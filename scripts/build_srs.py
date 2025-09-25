@@ -27,7 +27,7 @@ def write_json(path, obj):
         json.dump(obj, f, ensure_ascii=False)
 
 def compile_to_srs(singbox_bin, src_json, out_srs):
-    subprocess.check_call([singbox_bin, "rule-set", "compile", "-i", src_json, "-o", out_srs])
+    subprocess.check_call([singbox_bin, "rule-set", "compile", "--output", out_srs, src_json])
 
 def main():
     singbox_bin = os.environ.get("SINGBOX_BIN", "sing-box")
