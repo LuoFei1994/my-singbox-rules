@@ -1,0 +1,42 @@
+name: Sync upstream geoip/ips
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 每天 UTC 02:00 运行（北京时间 10:00）
+  workflow_dispatch:        # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set Git identity
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Fetch upstream ips branch
+        run: |
+          rm -rf upstream_repo
+          git clone --depth 1 --branch ips https://github.com/DustinWin/geoip.git upstream_repo
+          rsync -av --delete upstream_repo/ ./upstream/
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if git diff --quiet upstream; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push if changed
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git add upstream
+          git commit -m "chore: sync upstream geoip/ips"
+          git push origin HEAD:main
