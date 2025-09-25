@@ -27,7 +27,6 @@ def write_json(path, obj):
         json.dump(obj, f, ensure_ascii=False)
 
 def compile_to_srs(singbox_bin, src_json, out_srs):
-    # 正确的 sing-box 调用方式
     cmd = [singbox_bin, "rule-set", "compile", "--output", out_srs, src_json]
     subprocess.check_call(cmd)
 
