@@ -1,0 +1,47 @@
+name: Update and build sing-box SRS
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 每天 UTC 02:00 运行（北京时间 10:00）
+  workflow_dispatch:        # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 golang
+          go install github.com/sagernet/sing-box@latest
+          echo "SINGBOX_BIN=$HOME/go/bin/sing-box" >> $GITHUB_ENV
+
+      - name: Fetch upstream ips branch
+        run: |
+          rm -rf upstream
+          git clone --depth 1 --branch ips https://github.com/DustinWin/geoip.git upstream_repo
+          mkdir -p upstream
+          cp -r upstream_repo/* upstream/ || true
+
+      - name: Build SRS
+        run: |
+          chmod +x scripts/build_srs.py
+          python3 scripts/build_srs.py
+
+      - name: Check for changes
+        run: |
+          if git diff --quiet output; then
+            echo "NO_CHANGES=true" >> $GITHUB_ENV
+          else
+            echo "NO_CHANGES=false" >> $GITHUB_ENV
+          fi
+
+      - name: Commit and push if changed
+        if: env.NO_CHANGES == 'false'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update SRS from upstream"
+          file_pattern: output/*.srs
