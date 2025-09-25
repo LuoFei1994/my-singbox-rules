@@ -8,6 +8,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout your repo
         uses: actions/checkout@v4
@@ -21,9 +22,15 @@ jobs:
 
       - name: Fetch upstream ips branch
         run: |
-          rm -rf upstream_repo
+          rm -rf upstream_repo upstream
           git clone --depth 1 --branch ips https://github.com/DustinWin/geoip.git upstream_repo
-          rsync -av --delete upstream_repo/ ./upstream/
+          mkdir -p upstream
+          # 用 rsync 保持同步（包括删除）
+          rsync -av --delete upstream_repo/ upstream/
+          echo "==== 上游目录结构 ===="
+          ls -R upstream_repo | head -n 50
+          echo "==== 同步后的 upstream 目录 ===="
+          ls -R upstream | head -n 50
 
       - name: Check for changes
         id: git-check
