@@ -3,14 +3,13 @@ name: Sync upstream and build sing-box SRS
 on:
   schedule:
     - cron: "0 2 * * *"   # 每天 UTC 02:00 运行（北京时间 10:00）
-  workflow_dispatch:        # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # === Checkout with retry ===
       - name: Checkout with retry
         run: |
           for i in 1 2 3; do
@@ -36,11 +35,8 @@ jobs:
 
       - name: Install sing-box
         run: |
-          # 获取最新版本号（带 v）
           SINGBOX_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep tag_name | cut -d '"' -f4)
-          # 去掉 v 前缀
           SINGBOX_VERSION_NUM=${SINGBOX_VERSION#v}
-          # 下载 release
           wget https://github.com/SagerNet/sing-box/releases/download/${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION_NUM}-linux-amd64.tar.gz
           tar -xzf sing-box-${SINGBOX_VERSION_NUM}-linux-amd64.tar.gz
           sudo mv sing-box-${SINGBOX_VERSION_NUM}-linux-amd64/sing-box /usr/local/bin/sing-box
@@ -52,8 +48,7 @@ jobs:
           git clone --depth 1 --branch ips https://github.com/DustinWin/geoip.git upstream_repo
           mkdir -p upstream
           rsync -av --delete upstream_repo/ upstream/
-          echo "==== 同步后的 upstream 目录 ===="
-          ls -al upstream | head -n 50
+          ls -al upstream | head -n 20
 
       - name: Build SRS
         run: |
