@@ -1,4 +1,4 @@
-name: Update and build sing-box SRS
+name: Sync upstream and build sing-box SRS
 
 on:
   schedule:
@@ -12,11 +12,18 @@ jobs:
     steps:
       - name: Checkout your repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set Git identity
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 curl wget tar
+          sudo apt-get install -y python3 curl wget tar rsync
 
       - name: Install sing-box
         run: |
@@ -28,10 +35,12 @@ jobs:
 
       - name: Fetch upstream ips branch
         run: |
-          rm -rf upstream
+          rm -rf upstream_repo upstream
           git clone --depth 1 --branch ips https://github.com/DustinWin/geoip.git upstream_repo
           mkdir -p upstream
-          cp -r upstream_repo/* upstream/ || true
+          rsync -av --delete upstream_repo/ upstream/
+          echo "==== 同步后的 upstream 目录 ===="
+          ls -al upstream | head -n 50
 
       - name: Build SRS
         run: |
@@ -41,7 +50,8 @@ jobs:
       - name: Check for changes
         id: git-check
         run: |
-          if git diff --quiet output; then
+          git add -A upstream output
+          if git diff --cached --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -49,7 +59,6 @@ jobs:
 
       - name: Commit and push if changed
         if: steps.git-check.outputs.changed == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update SRS from upstream"
-          file_pattern: output/*.srs
+        run: |
+          git commit -m "chore: sync upstream and rebuild SRS"
+          git push origin HEAD:main
