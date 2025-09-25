@@ -10,10 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout your repo
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      # === Checkout with retry ===
+      - name: Checkout with retry
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i: git clone..."
+            rm -rf repo_tmp
+            if git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .; then
+              echo "Clone succeeded"
+              break
+            fi
+            echo "Clone failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Set Git identity
         run: |
